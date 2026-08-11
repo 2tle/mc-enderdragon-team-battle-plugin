@@ -36,7 +36,7 @@ class Enderteambattle : JavaPlugin() {
         ).forEach { server.pluginManager.registerEvents(it, this) }
 
         requireNotNull(getCommand("etb")) {
-            "plugin.yml에 etb 명령어가 등록되어 있지 않습니다."
+            "The etb command is not registered in plugin.yml."
         }.apply {
             setExecutor(etbCommand)
             tabCompleter = etbCommand

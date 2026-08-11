@@ -6,15 +6,15 @@ import io.twotle.domain.GameStatus
 
 internal class GameErrorMessageResolver {
     private val messages = mapOf(
-        TransitionKey(GameStatus.RUNNING, GameAction.START) to "게임이 이미 진행 중입니다.",
-        TransitionKey(GameStatus.IDLE, GameAction.PAUSE) to "진행 중인 게임이 없어 일시정지할 수 없습니다.",
-        TransitionKey(GameStatus.PAUSED, GameAction.PAUSE) to "게임이 이미 일시정지 상태입니다.",
-        TransitionKey(GameStatus.IDLE, GameAction.STOP) to "강제 종료할 게임이 없습니다.",
+        TransitionKey(GameStatus.RUNNING, GameAction.START) to "A game is already running.",
+        TransitionKey(GameStatus.IDLE, GameAction.PAUSE) to "There is no running game to pause.",
+        TransitionKey(GameStatus.PAUSED, GameAction.PAUSE) to "The game is already paused.",
+        TransitionKey(GameStatus.IDLE, GameAction.STOP) to "There is no game to stop.",
     )
 
     fun resolve(exception: InvalidGameTransition): String =
         messages[TransitionKey(exception.status, exception.action)]
-            ?: "현재 게임 상태에서는 해당 명령어를 실행할 수 없습니다."
+            ?: "This command cannot be used in the current game state."
 
     private data class TransitionKey(
         val status: GameStatus,

@@ -16,8 +16,8 @@ dependencies {
 }
 
 kotlin {
-    // Gradle 자체는 Java 26으로 실행해도 서버(Java 25)에서 로드할 수 있도록
-    // 생성되는 플러그인 바이트코드는 Java 25로 고정한다.
+    // Pin the generated plugin bytecode to Java 25 so it can run on the server,
+    // even when Gradle itself is running on Java 26.
     jvmToolchain(26)
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)

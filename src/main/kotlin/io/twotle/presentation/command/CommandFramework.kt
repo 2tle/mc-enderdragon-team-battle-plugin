@@ -68,4 +68,4 @@ internal abstract class ExactArgumentsCommand(
 }
 
 internal class CommandUsageException(usage: String) :
-    RuntimeException("사용법:\n$usage")
+    RuntimeException("Usage:\n$usage")

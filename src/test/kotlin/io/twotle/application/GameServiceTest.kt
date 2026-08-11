@@ -24,7 +24,7 @@ class GameServiceTest {
     private val service = GameService(games, teams, announcer)
 
     @Test
-    fun `게임 시작과 일시정지 및 재개 상태를 전이한다`() {
+    fun `start pause and resume transition the game state`() {
         service.start()
         assertEquals(GameStatus.RUNNING, games.status())
         assertIs<GameEvent.Started>(announcer.lastEvent)
@@ -39,7 +39,7 @@ class GameServiceTest {
     }
 
     @Test
-    fun `강제 종료는 게임을 대기 상태와 무승부로 변경한다`() {
+    fun `stop returns the game to idle with a draw`() {
         service.start()
         service.stop()
 
@@ -48,7 +48,7 @@ class GameServiceTest {
     }
 
     @Test
-    fun `유효하지 않은 상태 전이를 거부한다`() {
+    fun `invalid state transitions are rejected`() {
         val exception = assertFailsWith<InvalidGameTransition> { service.pause() }
 
         assertEquals(GameStatus.IDLE, exception.status)
@@ -56,7 +56,7 @@ class GameServiceTest {
     }
 
     @Test
-    fun `진행 중 드래곤을 최초 처치한 팀만 승리한다`() {
+    fun `only the first team to defeat the dragon wins`() {
         val member = TeamMember(UUID.randomUUID(), "Steve")
         teams.save(Team("RED", TeamColor.RED, listOf(member)))
         service.start()
@@ -70,7 +70,7 @@ class GameServiceTest {
     }
 
     @Test
-    fun `일시정지 중에는 팀원만 동결 대상으로 판정한다`() {
+    fun `only team members are frozen while the game is paused`() {
         val member = TeamMember(UUID.randomUUID(), "Alex")
         teams.save(Team("BLUE", TeamColor.BLUE, listOf(member)))
         service.start()

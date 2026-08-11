@@ -21,7 +21,7 @@ class TeamServiceTest {
     private val service = TeamService(repository, players, configuration, display)
 
     @Test
-    fun `팀 생성 시 중복된 이름을 대소문자 구분 없이 거부한다`() {
+    fun `team creation rejects duplicate names regardless of case`() {
         service.create("Red", "red")
 
         assertFailsWith<TeamAlreadyExists> { service.create("red", "blue") }
@@ -29,7 +29,7 @@ class TeamServiceTest {
     }
 
     @Test
-    fun `한 사용자는 하나의 팀에만 들어갈 수 있다`() {
+    fun `a player can belong to only one team`() {
         players.add("Steve")
         service.create("Red", "red")
         service.create("Blue", "blue")
@@ -42,7 +42,7 @@ class TeamServiceTest {
     }
 
     @Test
-    fun `팀원 추방과 팀 삭제는 소속 관계를 제거한다`() {
+    fun `kicking a member and deleting a team remove membership`() {
         val member = players.add("Alex")
         service.create("Red", "red")
         service.join("Red", "Alex")
@@ -57,7 +57,7 @@ class TeamServiceTest {
     }
 
     @Test
-    fun `초기화 요청을 설정 저장소에 위임한다`() {
+    fun `reset delegates to the configuration repository`() {
         service.reset()
 
         assertTrue(configuration.wasReset)
@@ -65,7 +65,7 @@ class TeamServiceTest {
     }
 
     @Test
-    fun `팀 색상과 멤버 변경을 표시 포트에 반영한다`() {
+    fun `team color and member changes are reflected in the display`() {
         players.add("Steve")
 
         service.create("Red", "red")

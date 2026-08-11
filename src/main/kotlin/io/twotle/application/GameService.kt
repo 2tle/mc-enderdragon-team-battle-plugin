@@ -70,4 +70,4 @@ data class Transition(
 class InvalidGameTransition(
     val status: GameStatus,
     val action: GameAction,
-) : RuntimeException("$status 상태에서는 $action 작업을 실행할 수 없습니다.")
+) : RuntimeException("The $action action cannot be performed while the game is $status.")

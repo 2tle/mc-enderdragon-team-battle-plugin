@@ -19,7 +19,7 @@ internal class EtbCommand(
         args: Array<out String>,
     ): Boolean {
         if (!sender.hasPermission(PERMISSION)) {
-            sender.error("이 명령어를 사용할 권한이 없습니다.")
+            sender.error("You do not have permission to use this command.")
             return true
         }
 

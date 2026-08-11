@@ -7,11 +7,11 @@ load: POSTWORLD
 
 commands:
   etb:
-    description: EnderTeamBattle 관리 명령어
+    description: EnderTeamBattle administration command
     usage: /etb <init|start|pause|stop|team>
     permission: enderteambattle.admin
 
 permissions:
   enderteambattle.admin:
-    description: EnderTeamBattle의 모든 관리 명령어를 사용할 수 있습니다.
+    description: Grants access to all EnderTeamBattle administration commands.
     default: op

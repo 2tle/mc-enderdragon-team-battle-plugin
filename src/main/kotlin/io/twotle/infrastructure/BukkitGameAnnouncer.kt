@@ -13,23 +13,23 @@ class BukkitGameAnnouncer : GameAnnouncer {
 
     private fun message(event: GameEvent): Component = when (event) {
         GameEvent.Started -> Component.text(
-            "[EnderTeamBattle] 게임이 시작되었습니다! 엔더 드래곤을 최초로 처치한 팀이 승리합니다.",
+            "[EnderTeamBattle] The game has started! The first team to defeat the Ender Dragon wins.",
             NamedTextColor.GREEN,
         )
         GameEvent.Resumed -> Component.text(
-            "[EnderTeamBattle] 일시정지된 게임을 재개합니다.",
+            "[EnderTeamBattle] The game has resumed.",
             NamedTextColor.GREEN,
         )
         GameEvent.Paused -> Component.text(
-            "[EnderTeamBattle] 게임이 일시정지되었습니다.",
+            "[EnderTeamBattle] The game has been paused.",
             NamedTextColor.YELLOW,
         )
         GameEvent.StoppedAsDraw -> Component.text(
-            "[EnderTeamBattle] 게임이 강제 종료되었습니다. 결과는 무승부입니다.",
+            "[EnderTeamBattle] The game has been stopped. The result is a draw.",
             NamedTextColor.RED,
         )
         is GameEvent.Won -> Component.text("[EnderTeamBattle] ", NamedTextColor.GOLD)
             .append(Component.text("[${event.team.name}]", BukkitTeamColor[event.team.color]))
-            .append(Component.text(" 팀이 엔더 드래곤을 최초로 처치하여 승리했습니다!", NamedTextColor.GOLD))
+            .append(Component.text(" is the first team to defeat the Ender Dragon and wins!", NamedTextColor.GOLD))
     }
 }
