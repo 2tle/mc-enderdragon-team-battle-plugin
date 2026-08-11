@@ -1,0 +1,29 @@
+# Gradle and Kotlin
+.gradle/
+.kotlin/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Paper development server
+run/
+
+# Local configuration and environment files
+local.properties
+.env
+.env.*
+!.env.example
+
+# Logs and JVM crash dumps
+*.log
+*.hprof
+hs_err_pid*
+replay_pid*
+
+# Operating system files
+.DS_Store
+Thumbs.db
