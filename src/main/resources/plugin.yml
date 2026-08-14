@@ -1,14 +1,14 @@
 name: EnderTeamBattle
-version: '${version}'
+version: "${version}"
 
 main: io.twotle.Enderteambattle
-api-version: '26.2'
+api-version: "26.2"
 load: POSTWORLD
 
 commands:
   etb:
     description: EnderTeamBattle administration command
-    usage: /etb <init|start|pause|stop|team>
+    usage: /etb <init|start|pause|stop|team|option>
     permission: enderteambattle.admin
 
 permissions:

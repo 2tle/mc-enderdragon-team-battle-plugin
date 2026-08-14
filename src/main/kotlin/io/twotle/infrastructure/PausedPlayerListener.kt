@@ -85,17 +85,23 @@ class PausedPlayerListener(
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onProjectileLaunch(event: ProjectileLaunchEvent) {
-        event.entity.shooter.playerSource()?.let { cancelIfFrozen(event, it) }
+        event.entity.shooter
+            .playerSource()
+            ?.let { cancelIfFrozen(event, it) }
     }
 
-    private fun cancelIfFrozen(event: Cancellable, player: Player) {
+    private fun cancelIfFrozen(
+        event: Cancellable,
+        player: Player,
+    ) {
         if (gameService.isFrozenParticipant(player.uniqueId)) event.isCancelled = true
     }
+}
 
-    private fun Any?.playerSource(): Player? = when (this) {
+internal fun Any?.playerSource(): Player? =
+    when (this) {
         is Player -> this
         is Projectile -> shooter as? Player
         is ProjectileSource -> this as? Player
         else -> null
     }
-}

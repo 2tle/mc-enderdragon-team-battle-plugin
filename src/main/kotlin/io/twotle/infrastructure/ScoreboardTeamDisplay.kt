@@ -5,7 +5,6 @@ import io.twotle.domain.TeamDisplay
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.scoreboard.Scoreboard
-import java.security.MessageDigest
 
 class ScoreboardTeamDisplay : TeamDisplay {
     private val scoreboard: Scoreboard
@@ -17,8 +16,9 @@ class ScoreboardTeamDisplay : TeamDisplay {
     }
 
     override fun update(team: Team) {
-        val scoreboardTeam = scoreboard.getTeam(scoreboardId(team))
-            ?: scoreboard.registerNewTeam(scoreboardId(team))
+        val scoreboardTeam =
+            scoreboard.getTeam(team.name)
+                ?: scoreboard.registerNewTeam(team.name)
         val color = BukkitTeamColor[team.color]
 
         scoreboardTeam.displayName(Component.text(team.name, color))
@@ -33,19 +33,13 @@ class ScoreboardTeamDisplay : TeamDisplay {
     }
 
     override fun remove(team: Team) {
-        scoreboard.getTeam(scoreboardId(team))?.unregister()
+        scoreboard.getTeam(team.name)?.unregister()
     }
 
     override fun reset() {
         scoreboard.teams
             .filter { it.name.startsWith(SCOREBOARD_PREFIX) }
             .forEach { it.unregister() }
-    }
-
-    private fun scoreboardId(team: Team): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(team.name.lowercase().toByteArray())
-        val hash = digest.take(6).joinToString("") { "%02x".format(it) }
-        return "$SCOREBOARD_PREFIX$hash"
     }
 
     private companion object {

@@ -14,7 +14,9 @@ import java.util.UUID
 
 class YamlDataStore(
     private val plugin: Enderteambattle,
-) : TeamRepository, ConfigurationRepository, GameRepository {
+) : TeamRepository,
+    ConfigurationRepository,
+    GameRepository {
     private val config
         get() = plugin.config
 
@@ -22,6 +24,7 @@ class YamlDataStore(
         if (config.getInt(DATA_VERSION_PATH) == DATA_VERSION) return
         migrateTeamColors()
         migrateGameStatus()
+        migrateTeamAttack()
         config.set(DATA_VERSION_PATH, DATA_VERSION)
         plugin.saveConfig()
     }
@@ -33,12 +36,21 @@ class YamlDataStore(
     }
 
     override fun status(): GameStatus =
-        config.getString(GAME_STATUS_PATH)
+        config
+            .getString(GAME_STATUS_PATH)
             ?.let { runCatching { GameStatus.valueOf(it) }.getOrNull() }
             ?: GameStatus.IDLE
 
     override fun saveStatus(status: GameStatus) {
         config.set(GAME_STATUS_PATH, status.name)
+        plugin.saveConfig()
+    }
+
+    override fun teamAttackAllowed(): Boolean =
+        if (config.contains(TEAM_ATTACK_ALLOWED_PATH)) config.getBoolean(TEAM_ATTACK_ALLOWED_PATH) else true
+
+    override fun saveTeamAttackAllowed(allowed: Boolean) {
+        config.set(TEAM_ATTACK_ALLOWED_PATH, allowed)
         plugin.saveConfig()
     }
 
@@ -49,8 +61,7 @@ class YamlDataStore(
             ?.mapNotNull(::readTeam)
             ?.firstOrNull { it.name.equals(name, ignoreCase = true) }
 
-    override fun findByMember(uuid: UUID): Team? =
-        findAll().firstOrNull { it.contains(uuid) }
+    override fun findByMember(uuid: UUID): Team? = findAll().firstOrNull { it.contains(uuid) }
 
     override fun findAll(): List<Team> =
         teamsSection()
@@ -78,13 +89,17 @@ class YamlDataStore(
     private fun readTeam(key: String): Team? {
         val path = "$TEAMS_PATH.$key"
         val name = config.getString("$path.name") ?: return null
-        val color = config.getString("$path.color")
-            ?.let(TeamColor::fromCommandName)
-            ?: TeamColor.WHITE
-        val members = config.getConfigurationSection("$path.members")
-            ?.getKeys(false)
-            ?.mapNotNull { memberKey -> readMember(path, memberKey) }
-            .orEmpty()
+        val color =
+            config
+                .getString("$path.color")
+                ?.let(TeamColor::fromCommandName)
+                ?: TeamColor.WHITE
+        val members =
+            config
+                .getConfigurationSection("$path.members")
+                ?.getKeys(false)
+                ?.mapNotNull { memberKey -> readMember(path, memberKey) }
+                .orEmpty()
         return Team(name, color, members)
     }
 
@@ -101,7 +116,14 @@ class YamlDataStore(
         }
     }
 
-    private fun readMember(teamPath: String, memberKey: String): TeamMember? =
+    private fun migrateTeamAttack() {
+        if (!config.contains(TEAM_ATTACK_ALLOWED_PATH)) config.set(TEAM_ATTACK_ALLOWED_PATH, true)
+    }
+
+    private fun readMember(
+        teamPath: String,
+        memberKey: String,
+    ): TeamMember? =
         runCatching {
             TeamMember(
                 uuid = UUID.fromString(memberKey),
@@ -109,16 +131,15 @@ class YamlDataStore(
             )
         }.getOrNull()
 
-    private fun teamsSection(): ConfigurationSection? =
-        config.getConfigurationSection(TEAMS_PATH)
+    private fun teamsSection(): ConfigurationSection? = config.getConfigurationSection(TEAMS_PATH)
 
-    private fun teamPath(teamName: String): String =
-        "$TEAMS_PATH.${teamName.lowercase(Locale.ROOT)}"
+    private fun teamPath(teamName: String): String = "$TEAMS_PATH.${teamName.lowercase(Locale.ROOT)}"
 
     private companion object {
-        const val DATA_VERSION = 3
+        const val DATA_VERSION = 4
         const val DATA_VERSION_PATH = "data-version"
         const val GAME_STATUS_PATH = "game.status"
+        const val TEAM_ATTACK_ALLOWED_PATH = "options.team-attack-allowed"
         const val TEAMS_PATH = "teams"
     }
 }

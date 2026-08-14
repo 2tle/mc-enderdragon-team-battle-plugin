@@ -52,6 +52,7 @@ All commands require the `enderteambattle.admin` permission.
 | `/etb team kick <teamname> <username>` | Remove a player from a team. |
 | `/etb team delete <teamname>` | Delete a team and unassign all of its members. |
 | `/etb team list` | List all teams, colors, and member counts. |
+| `/etb option teamAttack <allow\|deny>` | Allow or block teammates from damaging each other. |
 | `/etb start` | Start a new game or resume a paused game. |
 | `/etb pause` | Pause the running game and freeze participating players. |
 | `/etb stop` | Stop the game and declare a draw. |

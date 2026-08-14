@@ -18,11 +18,15 @@ class TeamService(
     fun synchronizeDisplay() = display.synchronize(teams.findAll())
 
     fun reset() {
+        teams.findAll().forEach(display::remove)
         configuration.reset()
         display.reset()
     }
 
-    fun create(teamName: String, colorName: String) {
+    fun create(
+        teamName: String,
+        colorName: String,
+    ) {
         validateTeamName(teamName)
         val color = TeamColor.fromCommandName(colorName) ?: throw InvalidTeamColor(colorName)
         teams.findByName(teamName)?.let { throw TeamAlreadyExists(teamName) }
@@ -32,7 +36,10 @@ class TeamService(
         }
     }
 
-    fun join(teamName: String, username: String) {
+    fun join(
+        teamName: String,
+        username: String,
+    ) {
         validateTeamName(teamName)
         validateUsername(username)
 
@@ -47,7 +54,10 @@ class TeamService(
         }
     }
 
-    fun kick(teamName: String, username: String) {
+    fun kick(
+        teamName: String,
+        username: String,
+    ) {
         validateTeamName(teamName)
         validateUsername(username)
 
@@ -67,19 +77,28 @@ class TeamService(
         }
     }
 
-    fun list(): List<TeamView> =
-        teams.findAll().map { TeamView(it.name, it.color, it.members.size) }
+    fun list(): List<TeamView> = teams.findAll().map { TeamView(it.name, it.color, it.members.size) }
 
     fun teamNames(): List<String> = teams.findAll().map { it.name }
 
     fun colorNames(): List<String> = TeamColor.commandNames()
 
+    fun setTeamAttackAllowed(allowed: Boolean) = configuration.saveTeamAttackAllowed(allowed)
+
     fun memberNames(teamName: String): List<String> =
-        teams.findByName(teamName)?.members?.map { it.username }?.sorted().orEmpty()
+        teams
+            .findByName(teamName)
+            ?.members
+            ?.map { it.username }
+            ?.sorted()
+            .orEmpty()
 
     fun onlineUsernames(): List<String> = players.onlineUsernames()
 
-    fun refreshMemberIdentity(uuid: UUID, username: String) {
+    fun refreshMemberIdentity(
+        uuid: UUID,
+        username: String,
+    ) {
         val team = teams.findByMember(uuid) ?: return
         val currentMember = team.members.first { it.uuid == uuid }
         if (currentMember.username == username) return
@@ -90,8 +109,7 @@ class TeamService(
         }
     }
 
-    private fun getTeam(teamName: String): Team =
-        teams.findByName(teamName) ?: throw TeamNotFound(teamName)
+    private fun getTeam(teamName: String): Team = teams.findByName(teamName) ?: throw TeamNotFound(teamName)
 
     private fun validateTeamName(teamName: String) {
         if (!TEAM_NAME.matches(teamName)) throw InvalidTeamName()
@@ -101,7 +119,11 @@ class TeamService(
         if (!USERNAME.matches(username)) throw InvalidUsername()
     }
 
-    data class TeamView(val name: String, val color: TeamColor, val memberCount: Int)
+    data class TeamView(
+        val name: String,
+        val color: TeamColor,
+        val memberCount: Int,
+    )
 
     private companion object {
         val TEAM_NAME = Regex("^[A-Za-z0-9_-]{1,32}$")
@@ -129,32 +151,46 @@ class InvalidTeamName : TeamServiceException(TeamErrorCode.INVALID_TEAM_NAME)
 
 class InvalidUsername : TeamServiceException(TeamErrorCode.INVALID_USERNAME)
 
-class InvalidTeamColor(colorName: String) : TeamServiceException(
-    TeamErrorCode.INVALID_TEAM_COLOR,
-    listOf(colorName),
-)
+class InvalidTeamColor(
+    colorName: String,
+) : TeamServiceException(
+        TeamErrorCode.INVALID_TEAM_COLOR,
+        listOf(colorName),
+    )
 
-class TeamAlreadyExists(teamName: String) : TeamServiceException(
-    TeamErrorCode.TEAM_ALREADY_EXISTS,
-    listOf(teamName),
-)
+class TeamAlreadyExists(
+    teamName: String,
+) : TeamServiceException(
+        TeamErrorCode.TEAM_ALREADY_EXISTS,
+        listOf(teamName),
+    )
 
-class TeamNotFound(teamName: String) : TeamServiceException(
-    TeamErrorCode.TEAM_NOT_FOUND,
-    listOf(teamName),
-)
+class TeamNotFound(
+    teamName: String,
+) : TeamServiceException(
+        TeamErrorCode.TEAM_NOT_FOUND,
+        listOf(teamName),
+    )
 
-class PlayerNotFound(username: String) : TeamServiceException(
-    TeamErrorCode.PLAYER_NOT_FOUND,
-    listOf(username),
-)
+class PlayerNotFound(
+    username: String,
+) : TeamServiceException(
+        TeamErrorCode.PLAYER_NOT_FOUND,
+        listOf(username),
+    )
 
-class PlayerAlreadyAssigned(username: String, teamName: String) : TeamServiceException(
-    TeamErrorCode.PLAYER_ALREADY_ASSIGNED,
-    listOf(username, teamName),
-)
+class PlayerAlreadyAssigned(
+    username: String,
+    teamName: String,
+) : TeamServiceException(
+        TeamErrorCode.PLAYER_ALREADY_ASSIGNED,
+        listOf(username, teamName),
+    )
 
-class PlayerNotInTeam(username: String, teamName: String) : TeamServiceException(
-    TeamErrorCode.PLAYER_NOT_IN_TEAM,
-    listOf(username, teamName),
-)
+class PlayerNotInTeam(
+    username: String,
+    teamName: String,
+) : TeamServiceException(
+        TeamErrorCode.PLAYER_NOT_IN_TEAM,
+        listOf(username, teamName),
+    )

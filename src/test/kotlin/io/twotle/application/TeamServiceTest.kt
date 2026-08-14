@@ -35,9 +35,10 @@ class TeamServiceTest {
         service.create("Blue", "blue")
         service.join("Red", "Steve")
 
-        val exception = assertFailsWith<PlayerAlreadyAssigned> {
-            service.join("Blue", "Steve")
-        }
+        val exception =
+            assertFailsWith<PlayerAlreadyAssigned> {
+                service.join("Blue", "Steve")
+            }
         assertEquals(listOf("Steve", "Red"), exception.arguments)
     }
 
@@ -57,11 +58,21 @@ class TeamServiceTest {
     }
 
     @Test
-    fun `reset delegates to the configuration repository`() {
+    fun `reset removes displayed teams and clears configuration`() {
+        service.create("Red", "red")
+
         service.reset()
 
+        assertEquals(listOf("Red"), display.removedTeams.map { it.name })
         assertTrue(configuration.wasReset)
         assertTrue(display.wasReset)
+    }
+
+    @Test
+    fun `team attack setting is saved`() {
+        service.setTeamAttackAllowed(false)
+
+        assertEquals(false, configuration.teamAttackAllowed())
     }
 
     @Test
@@ -79,8 +90,7 @@ class TeamServiceTest {
 private class InMemoryTeamRepository : TeamRepository {
     private val teams = mutableListOf<Team>()
 
-    override fun findByName(name: String): Team? =
-        teams.firstOrNull { it.name.equals(name, ignoreCase = true) }
+    override fun findByName(name: String): Team? = teams.firstOrNull { it.name.equals(name, ignoreCase = true) }
 
     override fun findByMember(uuid: UUID): Team? = teams.firstOrNull { it.contains(uuid) }
 
@@ -99,8 +109,7 @@ private class InMemoryTeamRepository : TeamRepository {
 private class InMemoryPlayerDirectory : PlayerDirectory {
     private val players = mutableMapOf<String, TeamMember>()
 
-    fun add(username: String): TeamMember =
-        TeamMember(UUID.randomUUID(), username).also { players[username.lowercase()] = it }
+    fun add(username: String): TeamMember = TeamMember(UUID.randomUUID(), username).also { players[username.lowercase()] = it }
 
     override fun findByUsername(username: String): TeamMember? = players[username.lowercase()]
 
@@ -110,6 +119,7 @@ private class InMemoryPlayerDirectory : PlayerDirectory {
 private class InMemoryTeamDisplay : TeamDisplay {
     var updatedTeam: Team? = null
         private set
+    val removedTeams = mutableListOf<Team>()
     var wasReset = false
         private set
 
@@ -119,7 +129,9 @@ private class InMemoryTeamDisplay : TeamDisplay {
         updatedTeam = team
     }
 
-    override fun remove(team: Team) = Unit
+    override fun remove(team: Team) {
+        removedTeams += team
+    }
 
     override fun reset() {
         wasReset = true
@@ -127,6 +139,7 @@ private class InMemoryTeamDisplay : TeamDisplay {
 }
 
 private class InMemoryConfigurationRepository : ConfigurationRepository {
+    private var teamAttackAllowed = true
     var wasReset = false
         private set
 
@@ -134,5 +147,11 @@ private class InMemoryConfigurationRepository : ConfigurationRepository {
 
     override fun reset() {
         wasReset = true
+    }
+
+    override fun teamAttackAllowed(): Boolean = teamAttackAllowed
+
+    override fun saveTeamAttackAllowed(allowed: Boolean) {
+        teamAttackAllowed = allowed
     }
 }

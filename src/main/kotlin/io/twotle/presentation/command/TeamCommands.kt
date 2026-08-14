@@ -21,9 +21,10 @@ internal class CreateTeamCommand(
         context.sender.success("Created team '$teamName' with the color '$colorName'.")
     }
 
-    override val suggestionProviders = mapOf<Int, (List<String>) -> List<String>>(
-        2 to { arguments -> matching(service.colorNames(), arguments[1]) },
-    )
+    override val suggestionProviders =
+        mapOf<Int, (List<String>) -> List<String>>(
+            2 to { arguments -> matching(service.colorNames(), arguments[1]) },
+        )
 }
 
 internal class JoinTeamCommand(
@@ -35,10 +36,11 @@ internal class JoinTeamCommand(
         context.sender.success("Added '$username' to team '$teamName'.")
     }
 
-    override val suggestionProviders = mapOf<Int, (List<String>) -> List<String>>(
-        1 to { arguments -> matching(service.teamNames(), arguments[0]) },
-        2 to { arguments -> matching(service.onlineUsernames(), arguments[1]) },
-    )
+    override val suggestionProviders =
+        mapOf<Int, (List<String>) -> List<String>>(
+            1 to { arguments -> matching(service.teamNames(), arguments[0]) },
+            2 to { arguments -> matching(service.onlineUsernames(), arguments[1]) },
+        )
 }
 
 internal class KickTeamCommand(
@@ -50,10 +52,11 @@ internal class KickTeamCommand(
         context.sender.success("Removed '$username' from team '$teamName'.")
     }
 
-    override val suggestionProviders = mapOf<Int, (List<String>) -> List<String>>(
-        1 to { arguments -> matching(service.teamNames(), arguments[0]) },
-        2 to { arguments -> matching(service.memberNames(arguments[0]), arguments[1]) },
-    )
+    override val suggestionProviders =
+        mapOf<Int, (List<String>) -> List<String>>(
+            1 to { arguments -> matching(service.teamNames(), arguments[0]) },
+            2 to { arguments -> matching(service.memberNames(arguments[0]), arguments[1]) },
+        )
 }
 
 internal class DeleteTeamCommand(
@@ -65,9 +68,10 @@ internal class DeleteTeamCommand(
         context.sender.success("Deleted team '$teamName'. All members are now unassigned.")
     }
 
-    override val suggestionProviders = mapOf<Int, (List<String>) -> List<String>>(
-        1 to { arguments -> matching(service.teamNames(), arguments[0]) },
-    )
+    override val suggestionProviders =
+        mapOf<Int, (List<String>) -> List<String>>(
+            1 to { arguments -> matching(service.teamNames(), arguments[0]) },
+        )
 }
 
 internal class ListTeamCommand(
@@ -75,14 +79,36 @@ internal class ListTeamCommand(
 ) : ExactArgumentsCommand("list", "/etb team list", 0) {
     override fun executeExact(context: CommandContext) {
         val teams = service.list()
-        val message = teams.takeIf { it.isNotEmpty() }
-            ?.joinToString(
-                separator = "\n",
-                prefix = "Teams (${teams.size}):\n",
-            ) { "- ${it.name} [${it.color.commandName}] (${it.memberCount} members)" }
-            ?: "No teams have been created."
+        val message =
+            teams
+                .takeIf { it.isNotEmpty() }
+                ?.joinToString(
+                    separator = "\n",
+                    prefix = "Teams (${teams.size}):\n",
+                ) { "- ${it.name} [${it.color.commandName}] (${it.memberCount} members)" }
+                ?: "No teams have been created."
         context.sender.info(message)
     }
+}
+
+private class TeamAttackOptionCommand(
+    private val service: TeamService,
+) : ExactArgumentsCommand("teamAttack", "/etb option teamAttack <allow|deny>", 1) {
+    override fun executeExact(context: CommandContext) {
+        val allowed =
+            when (context.arguments.single().lowercase()) {
+                "allow" -> true
+                "deny" -> false
+                else -> throw CommandUsageException(usage)
+            }
+        service.setTeamAttackAllowed(allowed)
+        context.sender.success("Team attacks are now ${if (allowed) "allowed" else "blocked"}.")
+    }
+
+    override val suggestionProviders =
+        mapOf<Int, (List<String>) -> List<String>>(
+            1 to { arguments -> matching(listOf("allow", "deny"), arguments[0]) },
+        )
 }
 
 internal fun createCommandTree(
@@ -91,20 +117,26 @@ internal fun createCommandTree(
 ): CommandNode =
     CompositeCommand(
         name = "etb",
-        children = listOf(
-            InitCommand(teamService),
-            StartGameCommand(gameService),
-            PauseGameCommand(gameService),
-            StopGameCommand(gameService),
-            CompositeCommand(
-                name = "team",
-                children = listOf(
-                    CreateTeamCommand(teamService),
-                    JoinTeamCommand(teamService),
-                    KickTeamCommand(teamService),
-                    DeleteTeamCommand(teamService),
-                    ListTeamCommand(teamService),
+        children =
+            listOf(
+                InitCommand(teamService),
+                StartGameCommand(gameService),
+                PauseGameCommand(gameService),
+                StopGameCommand(gameService),
+                CompositeCommand(
+                    name = "team",
+                    children =
+                        listOf(
+                            CreateTeamCommand(teamService),
+                            JoinTeamCommand(teamService),
+                            KickTeamCommand(teamService),
+                            DeleteTeamCommand(teamService),
+                            ListTeamCommand(teamService),
+                        ),
+                ),
+                CompositeCommand(
+                    name = "option",
+                    children = listOf(TeamAttackOptionCommand(teamService)),
                 ),
             ),
-        ),
     )
