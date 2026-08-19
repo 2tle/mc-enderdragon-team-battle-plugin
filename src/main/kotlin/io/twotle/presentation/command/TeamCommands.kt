@@ -111,6 +111,58 @@ private class TeamAttackOptionCommand(
         )
 }
 
+private class LocatorBarOptionCommand(
+    private val service: TeamService,
+) : ExactArgumentsCommand("locatorBar", "/etb option locatorBar <enable|disable>", 1) {
+    override fun executeExact(context: CommandContext) {
+        val enabled =
+            when (context.arguments.single().lowercase()) {
+                "enable" -> true
+                "disable" -> false
+                else -> throw CommandUsageException(usage)
+            }
+        service.setLocatorBarEnabled(enabled)
+        context.sender.success("The player locator bar is now ${if (enabled) "enabled" else "disabled"}.")
+    }
+
+    override val suggestionProviders =
+        mapOf<Int, (List<String>) -> List<String>>(
+            1 to { arguments -> matching(listOf("enable", "disable"), arguments[0]) },
+        )
+}
+
+private class PhantomSpawnOptionCommand(
+    private val service: TeamService,
+) : ExactArgumentsCommand("phantomSpawn", "/etb option phantomSpawn <allow|deny>", 1) {
+    override fun executeExact(context: CommandContext) {
+        val allowed =
+            when (context.arguments.single().lowercase()) {
+                "allow" -> true
+                "deny" -> false
+                else -> throw CommandUsageException(usage)
+            }
+        service.setPhantomSpawnAllowed(allowed)
+        context.sender.success("Phantom spawning is now ${if (allowed) "allowed" else "blocked"}.")
+    }
+
+    override val suggestionProviders =
+        mapOf<Int, (List<String>) -> List<String>>(
+            1 to { arguments -> matching(listOf("allow", "deny"), arguments[0]) },
+        )
+}
+
+private class WorldBorderOptionCommand(
+    private val service: TeamService,
+) : ExactArgumentsCommand("worldBorder", "/etb option worldBorder <radius>", 1) {
+    override fun executeExact(context: CommandContext) {
+        val radius = context.arguments.single().toIntOrNull() ?: throw CommandUsageException(usage)
+        service.setWorldBorderRadius(radius)
+        context.sender.success(
+            "The world border now spans from -$radius to +$radius on both the X and Z axes.",
+        )
+    }
+}
+
 internal fun createCommandTree(
     teamService: TeamService,
     gameService: GameService,
@@ -136,7 +188,13 @@ internal fun createCommandTree(
                 ),
                 CompositeCommand(
                     name = "option",
-                    children = listOf(TeamAttackOptionCommand(teamService)),
+                    children =
+                        listOf(
+                            TeamAttackOptionCommand(teamService),
+                            LocatorBarOptionCommand(teamService),
+                            PhantomSpawnOptionCommand(teamService),
+                            WorldBorderOptionCommand(teamService),
+                        ),
                 ),
             ),
     )

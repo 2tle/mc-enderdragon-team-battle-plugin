@@ -1,12 +1,21 @@
 package io.twotle.application
 
 import io.twotle.domain.ConfigurationRepository
+import io.twotle.domain.LocatorBar
+import io.twotle.domain.NoOpLocatorBar
+import io.twotle.domain.NoOpPhantomSpawn
+import io.twotle.domain.NoOpTeamSpawnDisplay
+import io.twotle.domain.NoOpWorldBorderDisplay
+import io.twotle.domain.PhantomSpawn
 import io.twotle.domain.PlayerDirectory
 import io.twotle.domain.Team
 import io.twotle.domain.TeamColor
 import io.twotle.domain.TeamDisplay
 import io.twotle.domain.TeamMember
 import io.twotle.domain.TeamRepository
+import io.twotle.domain.TeamSpawnDisplay
+import io.twotle.domain.TeamSpawnLayout
+import io.twotle.domain.WorldBorderDisplay
 import java.util.UUID
 
 class TeamService(
@@ -14,13 +23,28 @@ class TeamService(
     private val players: PlayerDirectory,
     private val configuration: ConfigurationRepository,
     private val display: TeamDisplay,
+    private val locatorBar: LocatorBar = NoOpLocatorBar,
+    private val phantomSpawn: PhantomSpawn = NoOpPhantomSpawn,
+    private val worldBorder: WorldBorderDisplay = NoOpWorldBorderDisplay,
+    private val spawns: TeamSpawnDisplay = NoOpTeamSpawnDisplay,
 ) {
-    fun synchronizeDisplay() = display.synchronize(teams.findAll())
+    fun synchronizeDisplay() {
+        val allTeams = teams.findAll()
+        display.synchronize(allTeams)
+        worldBorder.synchronize(configuration.worldBorderRadius())
+        spawns.synchronize(allTeams)
+        locatorBar.synchronize(configuration.locatorBarEnabled())
+        phantomSpawn.synchronize(configuration.phantomSpawnAllowed())
+    }
 
     fun reset() {
         teams.findAll().forEach(display::remove)
         configuration.reset()
         display.reset()
+        spawns.reset()
+        locatorBar.synchronize(configuration.locatorBarEnabled())
+        phantomSpawn.synchronize(configuration.phantomSpawnAllowed())
+        worldBorder.synchronize(configuration.worldBorderRadius())
     }
 
     fun create(
@@ -30,9 +54,15 @@ class TeamService(
         validateTeamName(teamName)
         val color = TeamColor.fromCommandName(colorName) ?: throw InvalidTeamColor(colorName)
         teams.findByName(teamName)?.let { throw TeamAlreadyExists(teamName) }
-        Team(teamName, color).also {
+        val spawnIndex = (teams.findAll().maxOfOrNull { it.spawnIndex } ?: -1) + 1
+        val requiredRadius = TeamSpawnLayout.requiredBorderRadius(spawnIndex)
+        if (requiredRadius > configuration.worldBorderRadius()) {
+            throw WorldBorderTooSmallForTeam(teamName, requiredRadius)
+        }
+        Team(teamName, color, spawnIndex = spawnIndex).also {
             teams.save(it)
             display.update(it)
+            spawns.update(it)
         }
     }
 
@@ -51,6 +81,7 @@ class TeamService(
         team.add(member).also {
             teams.save(it)
             display.update(it)
+            spawns.update(it)
         }
     }
 
@@ -66,6 +97,7 @@ class TeamService(
         team.remove(member).also {
             teams.save(it)
             display.update(it)
+            spawns.update(it)
         }
     }
 
@@ -74,6 +106,7 @@ class TeamService(
         getTeam(teamName).also {
             teams.delete(it)
             display.remove(it)
+            spawns.remove(it)
         }
     }
 
@@ -84,6 +117,30 @@ class TeamService(
     fun colorNames(): List<String> = TeamColor.commandNames()
 
     fun setTeamAttackAllowed(allowed: Boolean) = configuration.saveTeamAttackAllowed(allowed)
+
+    fun setLocatorBarEnabled(enabled: Boolean) {
+        configuration.saveLocatorBarEnabled(enabled)
+        locatorBar.synchronize(enabled)
+    }
+
+    fun setPhantomSpawnAllowed(allowed: Boolean) {
+        configuration.savePhantomSpawnAllowed(allowed)
+        phantomSpawn.synchronize(allowed)
+    }
+
+    fun setWorldBorderRadius(radius: Int) {
+        val requiredRadius =
+            maxOf(
+                MIN_WORLD_BORDER_RADIUS,
+                teams.findAll().maxOfOrNull { TeamSpawnLayout.requiredBorderRadius(it.spawnIndex) } ?: 0,
+            )
+        if (radius !in requiredRadius..MAX_WORLD_BORDER_RADIUS) {
+            throw InvalidWorldBorderRadius(radius, requiredRadius, MAX_WORLD_BORDER_RADIUS)
+        }
+        configuration.saveWorldBorderRadius(radius)
+        worldBorder.synchronize(radius)
+        spawns.synchronize(teams.findAll())
+    }
 
     fun memberNames(teamName: String): List<String> =
         teams
@@ -106,6 +163,7 @@ class TeamService(
         team.remove(currentMember).add(TeamMember(uuid, username)).also {
             teams.save(it)
             display.update(it)
+            spawns.update(it)
         }
     }
 
@@ -126,6 +184,8 @@ class TeamService(
     )
 
     private companion object {
+        const val MIN_WORLD_BORDER_RADIUS = 64
+        const val MAX_WORLD_BORDER_RADIUS = 29_999_984
         val TEAM_NAME = Regex("^[A-Za-z0-9_-]{1,32}$")
         val USERNAME = Regex("^[A-Za-z0-9_]{3,16}$")
     }
@@ -145,6 +205,8 @@ enum class TeamErrorCode {
     PLAYER_NOT_FOUND,
     PLAYER_ALREADY_ASSIGNED,
     PLAYER_NOT_IN_TEAM,
+    INVALID_WORLD_BORDER_RADIUS,
+    WORLD_BORDER_TOO_SMALL_FOR_TEAM,
 }
 
 class InvalidTeamName : TeamServiceException(TeamErrorCode.INVALID_TEAM_NAME)
@@ -193,4 +255,21 @@ class PlayerNotInTeam(
 ) : TeamServiceException(
         TeamErrorCode.PLAYER_NOT_IN_TEAM,
         listOf(username, teamName),
+    )
+
+class InvalidWorldBorderRadius(
+    radius: Int,
+    minimum: Int,
+    maximum: Int,
+) : TeamServiceException(
+        TeamErrorCode.INVALID_WORLD_BORDER_RADIUS,
+        listOf(radius.toString(), minimum.toString(), maximum.toString()),
+    )
+
+class WorldBorderTooSmallForTeam(
+    teamName: String,
+    requiredRadius: Int,
+) : TeamServiceException(
+        TeamErrorCode.WORLD_BORDER_TOO_SMALL_FOR_TEAM,
+        listOf(teamName, requiredRadius.toString()),
     )

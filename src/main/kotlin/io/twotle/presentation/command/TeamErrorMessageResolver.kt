@@ -23,6 +23,12 @@ internal class TeamErrorMessageResolver {
         TeamErrorCode.PLAYER_NOT_IN_TEAM to {
             "Player '${it[0]}' is not a member of team '${it[1]}'."
         },
+        TeamErrorCode.INVALID_WORLD_BORDER_RADIUS to {
+            "World border radius '${it[0]}' is invalid. With the current teams, enter a value from ${it[1]} to ${it[2]}."
+        },
+        TeamErrorCode.WORLD_BORDER_TOO_SMALL_FOR_TEAM to {
+            "Team '${it[0]}' needs a world border radius of at least ${it[1]}. Increase the border before creating it."
+        },
     )
 
     fun resolve(exception: TeamServiceException): String =

@@ -4,12 +4,18 @@ EnderTeamBattle is a Paper plugin for running team-based Ender Dragon battles. T
 
 ## Features
 
-- Create color-coded teams and manage their members.
+- Create color-coded teams and assign members even before their first server connection.
+- Give each team a safe default spawn, spaced about 550 blocks apart on both the X and Z axes.
 - Show team colors and membership through the server scoreboard.
 - Start, pause, resume, or stop a battle.
 - Freeze participating team members while a battle is paused.
 - Persist teams and game state in the plugin configuration.
 - Announce game events and the winning team to the server.
+- Announce to the whole server whenever a player enters the End.
+- Enable or disable the vanilla player locator bar for every world.
+- Allow or block phantom spawning in every world.
+- Set a persistent world-border radius centered at X/Z zero.
+- Track team kills and deaths and determine the winner when a game is stopped.
 
 ## Requirements
 
@@ -53,6 +59,9 @@ All commands require the `enderteambattle.admin` permission.
 | `/etb team delete <teamname>` | Delete a team and unassign all of its members. |
 | `/etb team list` | List all teams, colors, and member counts. |
 | `/etb option teamAttack <allow\|deny>` | Allow or block teammates from damaging each other. |
+| `/etb option locatorBar <enable\|disable>` | Enable or disable the player locator bar in every world. |
+| `/etb option phantomSpawn <allow\|deny>` | Allow or block phantom spawning in every world. |
+| `/etb option worldBorder <radius>` | Set every world's border to `-radius` through `+radius` on X and Z. |
 | `/etb start` | Start a new game or resume a paused game. |
 | `/etb pause` | Pause the running game and freeze participating players. |
 | `/etb stop` | Stop the game and declare a draw. |
@@ -69,6 +78,10 @@ Available colors are:
 2. Run `/etb start` to begin the battle.
 3. The first participating team to defeat the Ender Dragon wins, and the game returns to the idle state.
 4. Use `/etb pause` to temporarily freeze team members. Run `/etb start` to resume.
-5. Use `/etb stop` to end the current game as a draw.
+5. Use `/etb stop` to end the current game and award the team with the highest score. A team's score is its kills against opposing team members minus all deaths by its members. A tie for the highest score is a draw.
+
+New players assigned to a team spawn at that team's default location. On death, the team spawn is used only when the player has no valid personal bed, respawn anchor, or other assigned respawn location.
+
+Team spawns alternate across the positive and negative sides of the border at roughly 550-block intervals. A border cannot be reduced below the radius required to contain the current teams, and creating a team is rejected if its spawn would fall outside the configured border.
 
 Plugin data is stored in `plugins/EnderTeamBattle/config.yml`.

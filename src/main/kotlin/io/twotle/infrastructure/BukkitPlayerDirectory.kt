@@ -10,9 +10,15 @@ class BukkitPlayerDirectory : PlayerDirectory {
             return TeamMember(it.uniqueId, it.name)
         }
 
-        return Bukkit.getOfflinePlayers()
+        Bukkit.getOfflinePlayers()
             .firstOrNull { it.name?.equals(username, ignoreCase = true) == true }
-            ?.let { TeamMember(it.uniqueId, it.name ?: username) }
+            ?.let { return TeamMember(it.uniqueId, it.name ?: username) }
+
+        // Also resolve profiles that have never joined this server. Paper may perform
+        // a profile lookup here so the UUID still matches when the player first joins.
+        return Bukkit.getOfflinePlayer(username).let {
+            TeamMember(it.uniqueId, it.name ?: username)
+        }
     }
 
     override fun onlineUsernames(): List<String> =

@@ -1,12 +1,16 @@
 package io.twotle.application
 
 import io.twotle.domain.ConfigurationRepository
+import io.twotle.domain.LocatorBar
+import io.twotle.domain.PhantomSpawn
 import io.twotle.domain.PlayerDirectory
 import io.twotle.domain.Team
 import io.twotle.domain.TeamColor
 import io.twotle.domain.TeamDisplay
 import io.twotle.domain.TeamMember
 import io.twotle.domain.TeamRepository
+import io.twotle.domain.TeamSpawnLayout
+import io.twotle.domain.WorldBorderDisplay
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,7 +22,19 @@ class TeamServiceTest {
     private val players = InMemoryPlayerDirectory()
     private val configuration = InMemoryConfigurationRepository()
     private val display = InMemoryTeamDisplay()
-    private val service = TeamService(repository, players, configuration, display)
+    private val locatorBar = InMemoryLocatorBar()
+    private val phantomSpawn = InMemoryPhantomSpawn()
+    private val worldBorder = InMemoryWorldBorderDisplay()
+    private val service =
+        TeamService(
+            repository,
+            players,
+            configuration,
+            display,
+            locatorBar,
+            phantomSpawn,
+            worldBorder,
+        )
 
     @Test
     fun `team creation rejects duplicate names regardless of case`() {
@@ -73,6 +89,60 @@ class TeamServiceTest {
         service.setTeamAttackAllowed(false)
 
         assertEquals(false, configuration.teamAttackAllowed())
+    }
+
+    @Test
+    fun `locator bar setting is saved and applied`() {
+        service.setLocatorBarEnabled(false)
+
+        assertEquals(false, configuration.locatorBarEnabled())
+        assertEquals(false, locatorBar.enabled)
+    }
+
+    @Test
+    fun `phantom spawn setting is saved and applied`() {
+        service.setPhantomSpawnAllowed(false)
+
+        assertEquals(false, configuration.phantomSpawnAllowed())
+        assertEquals(false, phantomSpawn.allowed)
+    }
+
+    @Test
+    fun `world border must contain every team spawn`() {
+        service.create("Red", "red")
+        service.create("Blue", "blue")
+
+        assertFailsWith<InvalidWorldBorderRadius> {
+            service.setWorldBorderRadius(TeamSpawnLayout.requiredBorderRadius(1) - 1)
+        }
+        service.setWorldBorderRadius(TeamSpawnLayout.requiredBorderRadius(1))
+
+        assertEquals(571, configuration.worldBorderRadius())
+        assertEquals(571, worldBorder.radius)
+    }
+
+    @Test
+    fun `team spawn offsets alternate across both sides of the border`() {
+        assertEquals(listOf(0, 550, -550, 1100, -1100), (0..4).map(TeamSpawnLayout::offset))
+    }
+
+    @Test
+    fun `a team cannot be created when its spawn would be outside the border`() {
+        service.setWorldBorderRadius(64)
+        service.create("Red", "red")
+
+        assertFailsWith<WorldBorderTooSmallForTeam> {
+            service.create("Blue", "blue")
+        }
+    }
+
+    @Test
+    fun `new teams receive stable distinct spawn indices`() {
+        service.create("Red", "red")
+        service.create("Blue", "blue")
+
+        assertEquals(0, repository.findByName("Red")?.spawnIndex)
+        assertEquals(1, repository.findByName("Blue")?.spawnIndex)
     }
 
     @Test
@@ -140,6 +210,9 @@ private class InMemoryTeamDisplay : TeamDisplay {
 
 private class InMemoryConfigurationRepository : ConfigurationRepository {
     private var teamAttackAllowed = true
+    private var locatorBarEnabled = true
+    private var phantomSpawnAllowed = true
+    private var worldBorderRadius = 29_999_984
     var wasReset = false
         private set
 
@@ -153,5 +226,50 @@ private class InMemoryConfigurationRepository : ConfigurationRepository {
 
     override fun saveTeamAttackAllowed(allowed: Boolean) {
         teamAttackAllowed = allowed
+    }
+
+    override fun locatorBarEnabled(): Boolean = locatorBarEnabled
+
+    override fun saveLocatorBarEnabled(enabled: Boolean) {
+        locatorBarEnabled = enabled
+    }
+
+    override fun phantomSpawnAllowed(): Boolean = phantomSpawnAllowed
+
+    override fun savePhantomSpawnAllowed(allowed: Boolean) {
+        phantomSpawnAllowed = allowed
+    }
+
+    override fun worldBorderRadius(): Int = worldBorderRadius
+
+    override fun saveWorldBorderRadius(radius: Int) {
+        worldBorderRadius = radius
+    }
+}
+
+private class InMemoryLocatorBar : LocatorBar {
+    var enabled: Boolean? = null
+        private set
+
+    override fun synchronize(enabled: Boolean) {
+        this.enabled = enabled
+    }
+}
+
+private class InMemoryPhantomSpawn : PhantomSpawn {
+    var allowed: Boolean? = null
+        private set
+
+    override fun synchronize(allowed: Boolean) {
+        this.allowed = allowed
+    }
+}
+
+private class InMemoryWorldBorderDisplay : WorldBorderDisplay {
+    var radius: Int? = null
+        private set
+
+    override fun synchronize(radius: Int) {
+        this.radius = radius
     }
 }

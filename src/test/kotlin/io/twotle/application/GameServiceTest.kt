@@ -9,6 +9,7 @@ import io.twotle.domain.Team
 import io.twotle.domain.TeamColor
 import io.twotle.domain.TeamMember
 import io.twotle.domain.TeamRepository
+import io.twotle.domain.TeamScore
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,12 +40,44 @@ class GameServiceTest {
     }
 
     @Test
-    fun `stop returns the game to idle with a draw`() {
+    fun `stop returns the game to idle with a draw when no team has a unique highest score`() {
         service.start()
         service.stop()
 
         assertEquals(GameStatus.IDLE, games.status())
         assertIs<GameEvent.StoppedAsDraw>(announcer.lastEvent)
+    }
+
+    @Test
+    fun `stop awards the team with the highest opponent kills minus team deaths`() {
+        val red = TeamMember(UUID.randomUUID(), "RedPlayer")
+        val blue = TeamMember(UUID.randomUUID(), "BluePlayer")
+        teams.save(Team("RED", TeamColor.RED, listOf(red)))
+        teams.save(Team("BLUE", TeamColor.BLUE, listOf(blue)))
+        service.start()
+
+        service.recordPlayerDeath(victimUuid = blue.uuid, killerUuid = red.uuid)
+        service.recordPlayerDeath(victimUuid = red.uuid, killerUuid = null)
+        service.stop()
+
+        val event = assertIs<GameEvent.WonByScore>(announcer.lastEvent)
+        assertEquals("RED", event.team.name)
+        assertEquals(0, event.standings.first { it.team.name == "RED" }.score.points)
+        assertEquals(-1, event.standings.first { it.team.name == "BLUE" }.score.points)
+        assertEquals(GameStatus.IDLE, games.status())
+        assertTrue(games.scores().isEmpty())
+    }
+
+    @Test
+    fun `team kills do not add a kill but every participating death is counted`() {
+        val first = TeamMember(UUID.randomUUID(), "First")
+        val second = TeamMember(UUID.randomUUID(), "Second")
+        teams.save(Team("RED", TeamColor.RED, listOf(first, second)))
+        service.start()
+
+        service.recordPlayerDeath(victimUuid = second.uuid, killerUuid = first.uuid)
+
+        assertEquals(TeamScore(kills = 0, deaths = 1), games.scores()["red"])
     }
 
     @Test
@@ -83,11 +116,22 @@ class GameServiceTest {
 
 private class InMemoryGameRepository : GameRepository {
     private var currentStatus = GameStatus.IDLE
+    private var currentScores = emptyMap<String, TeamScore>()
 
     override fun status(): GameStatus = currentStatus
 
     override fun saveStatus(status: GameStatus) {
         currentStatus = status
+    }
+
+    override fun scores(): Map<String, TeamScore> = currentScores
+
+    override fun saveScores(scores: Map<String, TeamScore>) {
+        currentScores = scores.toMap()
+    }
+
+    override fun clearScores() {
+        currentScores = emptyMap()
     }
 }
 

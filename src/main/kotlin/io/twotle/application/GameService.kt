@@ -6,7 +6,10 @@ import io.twotle.domain.GameEvent
 import io.twotle.domain.GameRepository
 import io.twotle.domain.GameStatus
 import io.twotle.domain.TeamRepository
+import io.twotle.domain.TeamScore
+import io.twotle.domain.TeamStanding
 import java.util.UUID
+import java.util.Locale
 
 class GameService(
     private val games: GameRepository,
@@ -14,17 +17,64 @@ class GameService(
     private val announcer: GameAnnouncer,
     private val stateMachine: GameStateMachine = GameStateMachine(),
 ) {
-    fun start() = transition(GameAction.START)
+    fun start() {
+        if (games.status() == GameStatus.IDLE) {
+            games.saveScores(
+                teams.findAll().associate { it.name.scoreKey() to TeamScore() },
+            )
+        }
+        transition(GameAction.START)
+    }
 
     fun pause() = transition(GameAction.PAUSE)
 
-    fun stop() = transition(GameAction.STOP)
+    fun stop() {
+        val status = games.status()
+        if (status != GameStatus.RUNNING && status != GameStatus.PAUSED) {
+            throw InvalidGameTransition(status, GameAction.STOP)
+        }
+
+        val standings = standings()
+        val highestScore = standings.maxOfOrNull { it.score.points }
+        val leaders = standings.filter { it.score.points == highestScore }
+        val event =
+            if (leaders.size == 1) {
+                GameEvent.WonByScore(leaders.single().team, standings)
+            } else {
+                GameEvent.StoppedAsDraw(standings)
+            }
+
+        games.saveStatus(GameStatus.IDLE)
+        games.clearScores()
+        announcer.announce(event)
+    }
+
+    fun recordPlayerDeath(
+        victimUuid: UUID,
+        killerUuid: UUID?,
+    ) {
+        if (games.status() != GameStatus.RUNNING) return
+        val victimTeam = teams.findByMember(victimUuid) ?: return
+        val scores = games.scores().toMutableMap()
+        val victimKey = victimTeam.name.scoreKey()
+        val victimScore = scores[victimKey] ?: TeamScore()
+        scores[victimKey] = victimScore.copy(deaths = victimScore.deaths + 1)
+
+        val killerTeam = killerUuid?.let(teams::findByMember)
+        if (killerTeam != null && !killerTeam.name.equals(victimTeam.name, ignoreCase = true)) {
+            val killerKey = killerTeam.name.scoreKey()
+            val killerScore = scores[killerKey] ?: TeamScore()
+            scores[killerKey] = killerScore.copy(kills = killerScore.kills + 1)
+        }
+        games.saveScores(scores)
+    }
 
     fun onDragonDefeated(killerUuid: UUID) {
         if (games.status() != GameStatus.RUNNING) return
         val winner = teams.findByMember(killerUuid) ?: return
 
         games.saveStatus(GameStatus.IDLE)
+        games.clearScores()
         announcer.announce(GameEvent.Won(winner))
     }
 
@@ -36,6 +86,20 @@ class GameService(
         games.saveStatus(transition.nextStatus)
         announcer.announce(transition.event)
     }
+
+    private fun standings(): List<TeamStanding> {
+        val scores = games.scores()
+        return teams
+            .findAll()
+            .map { team -> TeamStanding(team, scores[team.name.scoreKey()] ?: TeamScore()) }
+            .sortedWith(
+                compareByDescending<TeamStanding> { it.score.points }
+                    .thenByDescending { it.score.kills }
+                    .thenBy { it.team.name.lowercase(Locale.ROOT) },
+            )
+    }
+
+    private fun String.scoreKey(): String = lowercase(Locale.ROOT)
 }
 
 class GameStateMachine {
@@ -46,10 +110,6 @@ class GameStateMachine {
             Transition(GameStatus.RUNNING, GameEvent.Resumed),
         TransitionKey(GameStatus.RUNNING, GameAction.PAUSE) to
             Transition(GameStatus.PAUSED, GameEvent.Paused),
-        TransitionKey(GameStatus.RUNNING, GameAction.STOP) to
-            Transition(GameStatus.IDLE, GameEvent.StoppedAsDraw),
-        TransitionKey(GameStatus.PAUSED, GameAction.STOP) to
-            Transition(GameStatus.IDLE, GameEvent.StoppedAsDraw),
     )
 
     fun transition(status: GameStatus, action: GameAction): Transition =

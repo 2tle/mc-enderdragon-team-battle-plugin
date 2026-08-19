@@ -6,6 +6,7 @@ data class Team(
     val name: String,
     val color: TeamColor,
     val members: List<TeamMember> = emptyList(),
+    val spawnIndex: Int = 0,
 ) {
     fun contains(uuid: UUID): Boolean = members.any { it.uuid == uuid }
 
