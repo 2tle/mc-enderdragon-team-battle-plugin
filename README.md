@@ -2,6 +2,8 @@
 
 EnderTeamBattle is a Paper plugin for running team-based Ender Dragon battles. The first team to defeat the Ender Dragon wins.
 
+Current release: **1.3**
+
 ## Features
 
 - Create color-coded teams and assign members even before their first server connection.
@@ -31,7 +33,7 @@ A system installation of Gradle is currently required because this repository do
 gradle build
 ```
 
-The shaded plugin JAR is generated in `build/libs/`.
+The deployable shaded plugin JAR is generated at `build/libs/EnderTeamBattle-1.3-all.jar`.
 
 To start a local Paper development server:
 
@@ -42,7 +44,7 @@ gradle runServer
 ## Installation
 
 1. Build the plugin or download a release JAR.
-2. Copy the JAR into your Paper server's `plugins/` directory.
+2. Copy `EnderTeamBattle-1.3-all.jar` into your Paper server's `plugins/` directory.
 3. Start or restart the server.
 4. Grant `enderteambattle.admin` to administrators, or use the commands as a server operator.
 
@@ -64,7 +66,7 @@ All commands require the `enderteambattle.admin` permission.
 | `/etb option worldBorder <radius>` | Set every world's border to `-radius` through `+radius` on X and Z. |
 | `/etb start` | Start a new game or resume a paused game. |
 | `/etb pause` | Pause the running game and freeze participating players. |
-| `/etb stop` | Stop the game and declare a draw. |
+| `/etb stop` | Stop the game and award the highest-scoring team; tied highest scores are a draw. |
 
 Team names must be 1–32 characters long and may contain letters, numbers, underscores, and hyphens. Commands support tab completion for team names, players, and colors.
 
