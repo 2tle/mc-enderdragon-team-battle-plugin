@@ -5,7 +5,7 @@ EnderTeamBattle is a Paper plugin for running team-based Ender Dragon battles. T
 ## Features
 
 - Create color-coded teams and assign members even before their first server connection.
-- Give each team a safe default spawn, spaced about 550 blocks apart on both the X and Z axes.
+- Give each team a safe default spawn, arranged evenly around the world-border center about 550 blocks apart.
 - Show team colors and membership through the server scoreboard.
 - Start, pause, resume, or stop a battle.
 - Freeze participating team members while a battle is paused.
@@ -82,6 +82,6 @@ Available colors are:
 
 New players assigned to a team spawn at that team's default location. On death, the team spawn is used only when the player has no valid personal bed, respawn anchor, or other assigned respawn location.
 
-Team spawns alternate across the positive and negative sides of the border at roughly 550-block intervals. A border cannot be reduced below the radius required to contain the current teams, and creating a team is rejected if its spawn would fall outside the configured border.
+Team spawns are distributed evenly around the border center. Three teams form an equilateral triangle with roughly 550-block sides; other team counts form the corresponding regular polygon. A border cannot be reduced below the radius required to contain the current teams, and creating a team is rejected if its spawn would fall outside the configured border.
 
 Plugin data is stored in `plugins/EnderTeamBattle/config.yml`.

@@ -18,24 +18,32 @@ import java.util.concurrent.ConcurrentHashMap
 class BukkitTeamSpawnDisplay : TeamSpawnDisplay, Listener {
     private val memberSpawns = ConcurrentHashMap<UUID, Location>()
     private val teamMembers = ConcurrentHashMap<String, Set<UUID>>()
+    private val teamSpawns = ConcurrentHashMap<String, Location>()
 
     override fun synchronize(teams: List<Team>) {
         reset()
-        teams.forEach(::update)
+        val orderedTeams = teams.sortedWith(compareBy<Team> { it.spawnIndex }.thenBy { it.name.lowercase(Locale.ROOT) })
+        orderedTeams.forEachIndexed { slot, team ->
+            val key = team.name.lowercase(Locale.ROOT)
+            resolveSpawn(slot, orderedTeams.size)?.let { teamSpawns[key] = it }
+            update(team)
+        }
     }
 
     override fun update(team: Team) {
         val key = team.name.lowercase(Locale.ROOT)
         teamMembers.remove(key).orEmpty().forEach(memberSpawns::remove)
-        val spawn = resolveSpawn(team) ?: return
+        val spawn = teamSpawns[key] ?: return
         val memberIds = team.members.mapTo(mutableSetOf()) { it.uuid }
         teamMembers[key] = memberIds
         memberIds.forEach { memberSpawns[it] = spawn.clone() }
     }
 
     override fun remove(team: Team) {
+        val key = team.name.lowercase(Locale.ROOT)
+        teamSpawns.remove(key)
         teamMembers
-            .remove(team.name.lowercase(Locale.ROOT))
+            .remove(key)
             .orEmpty()
             .forEach(memberSpawns::remove)
     }
@@ -43,6 +51,7 @@ class BukkitTeamSpawnDisplay : TeamSpawnDisplay, Listener {
     override fun reset() {
         memberSpawns.clear()
         teamMembers.clear()
+        teamSpawns.clear()
     }
 
     @EventHandler
@@ -59,13 +68,16 @@ class BukkitTeamSpawnDisplay : TeamSpawnDisplay, Listener {
         memberSpawns[event.player.uniqueId]?.clone()?.let(event::setRespawnLocation)
     }
 
-    private fun resolveSpawn(team: Team): Location? {
+    private fun resolveSpawn(
+        slot: Int,
+        teamCount: Int,
+    ): Location? {
         val world = Bukkit.getWorlds().firstOrNull { it.environment == World.Environment.NORMAL } ?: return null
         val worldSpawn = world.spawnLocation
         val borderCenter = world.worldBorder.center
-        val offset = TeamSpawnLayout.offset(team.spawnIndex)
-        val baseX = borderCenter.blockX + offset
-        val baseZ = borderCenter.blockZ + offset
+        val position = TeamSpawnLayout.position(slot, teamCount)
+        val baseX = borderCenter.blockX + position.x
+        val baseZ = borderCenter.blockZ + position.z
 
         candidateOffsets().forEach { (offsetX, offsetZ) ->
             safeSpawnAt(world, baseX + offsetX, baseZ + offsetZ, worldSpawn)?.let { return it }

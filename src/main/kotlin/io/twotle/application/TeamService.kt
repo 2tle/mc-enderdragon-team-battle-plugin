@@ -54,15 +54,16 @@ class TeamService(
         validateTeamName(teamName)
         val color = TeamColor.fromCommandName(colorName) ?: throw InvalidTeamColor(colorName)
         teams.findByName(teamName)?.let { throw TeamAlreadyExists(teamName) }
-        val spawnIndex = (teams.findAll().maxOfOrNull { it.spawnIndex } ?: -1) + 1
-        val requiredRadius = TeamSpawnLayout.requiredBorderRadius(spawnIndex)
+        val currentTeams = teams.findAll()
+        val spawnIndex = (currentTeams.maxOfOrNull { it.spawnIndex } ?: -1) + 1
+        val requiredRadius = TeamSpawnLayout.requiredBorderRadius(currentTeams.size + 1)
         if (requiredRadius > configuration.worldBorderRadius()) {
             throw WorldBorderTooSmallForTeam(teamName, requiredRadius)
         }
         Team(teamName, color, spawnIndex = spawnIndex).also {
             teams.save(it)
             display.update(it)
-            spawns.update(it)
+            spawns.synchronize(teams.findAll())
         }
     }
 
@@ -106,7 +107,7 @@ class TeamService(
         getTeam(teamName).also {
             teams.delete(it)
             display.remove(it)
-            spawns.remove(it)
+            spawns.synchronize(teams.findAll())
         }
     }
 
@@ -132,7 +133,7 @@ class TeamService(
         val requiredRadius =
             maxOf(
                 MIN_WORLD_BORDER_RADIUS,
-                teams.findAll().maxOfOrNull { TeamSpawnLayout.requiredBorderRadius(it.spawnIndex) } ?: 0,
+                TeamSpawnLayout.requiredBorderRadius(teams.findAll().size),
             )
         if (radius !in requiredRadius..MAX_WORLD_BORDER_RADIUS) {
             throw InvalidWorldBorderRadius(radius, requiredRadius, MAX_WORLD_BORDER_RADIUS)

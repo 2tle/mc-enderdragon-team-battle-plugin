@@ -3,6 +3,7 @@ package io.twotle.application
 import io.twotle.domain.ConfigurationRepository
 import io.twotle.domain.LocatorBar
 import io.twotle.domain.PhantomSpawn
+import io.twotle.domain.SpawnPoint
 import io.twotle.domain.PlayerDirectory
 import io.twotle.domain.Team
 import io.twotle.domain.TeamColor
@@ -113,17 +114,24 @@ class TeamServiceTest {
         service.create("Blue", "blue")
 
         assertFailsWith<InvalidWorldBorderRadius> {
-            service.setWorldBorderRadius(TeamSpawnLayout.requiredBorderRadius(1) - 1)
+            service.setWorldBorderRadius(TeamSpawnLayout.requiredBorderRadius(2) - 1)
         }
-        service.setWorldBorderRadius(TeamSpawnLayout.requiredBorderRadius(1))
+        service.setWorldBorderRadius(TeamSpawnLayout.requiredBorderRadius(2))
 
-        assertEquals(571, configuration.worldBorderRadius())
-        assertEquals(571, worldBorder.radius)
+        assertEquals(296, configuration.worldBorderRadius())
+        assertEquals(296, worldBorder.radius)
     }
 
     @Test
-    fun `team spawn offsets alternate across both sides of the border`() {
-        assertEquals(listOf(0, 550, -550, 1100, -1100), (0..4).map(TeamSpawnLayout::offset))
+    fun `three team spawns form an equilateral triangle around the center`() {
+        assertEquals(
+            listOf(
+                SpawnPoint(0, -318),
+                SpawnPoint(275, 159),
+                SpawnPoint(-275, 159),
+            ),
+            (0..2).map { TeamSpawnLayout.position(it, 3) },
+        )
     }
 
     @Test
