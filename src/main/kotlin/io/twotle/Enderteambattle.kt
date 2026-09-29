@@ -1,5 +1,6 @@
 package io.twotle
 
+import io.twotle.application.AdministratorService
 import io.twotle.application.GameService
 import io.twotle.application.TeamService
 import io.twotle.infrastructure.BukkitGameAnnouncer
@@ -23,6 +24,8 @@ import org.bukkit.plugin.java.JavaPlugin
 class Enderteambattle : JavaPlugin() {
     override fun onEnable() {
         val dataStore = YamlDataStore(this).also { it.initialize() }
+        val playerDirectory = BukkitPlayerDirectory()
+        val administratorService = AdministratorService(dataStore, playerDirectory)
         val locatorBar = BukkitLocatorBar(dataStore)
         val phantomSpawn = BukkitPhantomSpawn(dataStore)
         val worldBorder = BukkitWorldBorderDisplay(dataStore)
@@ -30,7 +33,7 @@ class Enderteambattle : JavaPlugin() {
         val teamService =
             TeamService(
                 teams = dataStore,
-                players = BukkitPlayerDirectory(),
+                players = playerDirectory,
                 configuration = dataStore,
                 display = ScoreboardTeamDisplay(),
                 locatorBar = locatorBar,
@@ -44,7 +47,10 @@ class Enderteambattle : JavaPlugin() {
                 teams = dataStore,
                 announcer = BukkitGameAnnouncer(),
             )
-        val etbCommand = EtbCommand(createCommandTree(teamService, gameService))
+        val etbCommand = EtbCommand(
+            createCommandTree(teamService, gameService, administratorService),
+            administratorService,
+        )
 
         listOf(
             PlayerIdentityListener(teamService),

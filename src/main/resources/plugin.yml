@@ -8,8 +8,7 @@ load: POSTWORLD
 commands:
   etb:
     description: EnderTeamBattle administration command
-    usage: /etb <init|start|pause|stop|team|option>
-    permission: enderteambattle.admin
+    usage: /etb <init|start|pause|stop|team|option|admin>
 
 permissions:
   enderteambattle.admin:

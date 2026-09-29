@@ -46,11 +46,11 @@ gradle runServer
 1. Build the plugin or download a release JAR.
 2. Copy `EnderTeamBattle-1.3-all.jar` into your Paper server's `plugins/` directory.
 3. Start or restart the server.
-4. Grant `enderteambattle.admin` to administrators, or use the commands as a server operator.
+4. Use the commands as a server operator, or delegate access with `/etb admin add <username>`.
 
 ## Commands
 
-All commands require the `enderteambattle.admin` permission.
+Commands can be used by server operators, delegated administrators, or players with the `enderteambattle.admin` permission. Only server operators can manage delegated administrators.
 
 | Command | Description |
 | --- | --- |
@@ -67,6 +67,9 @@ All commands require the `enderteambattle.admin` permission.
 | `/etb start` | Start a new game or resume a paused game. |
 | `/etb pause` | Pause the running game and freeze participating players. |
 | `/etb stop` | Stop the game and award the highest-scoring team; tied highest scores are a draw. |
+| `/etb admin add <username>` | Grant a player access to EnderTeamBattle commands. OP only. |
+| `/etb admin remove <username>` | Revoke a player's delegated access. OP only. |
+| `/etb admin list` | List delegated administrators. OP only. |
 
 Team names must be 1–32 characters long and may contain letters, numbers, underscores, and hyphens. Commands support tab completion for team names, players, and colors.
 

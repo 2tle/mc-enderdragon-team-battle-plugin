@@ -1,5 +1,6 @@
 package io.twotle.presentation.command
 
+import io.twotle.application.AdministratorService
 import io.twotle.application.GameService
 import io.twotle.application.TeamService
 
@@ -166,6 +167,7 @@ private class WorldBorderOptionCommand(
 internal fun createCommandTree(
     teamService: TeamService,
     gameService: GameService,
+    administratorService: AdministratorService,
 ): CommandNode =
     CompositeCommand(
         name = "etb",
@@ -175,6 +177,15 @@ internal fun createCommandTree(
                 StartGameCommand(gameService),
                 PauseGameCommand(gameService),
                 StopGameCommand(gameService),
+                CompositeCommand(
+                    name = "admin",
+                    children =
+                        listOf(
+                            AddAdministratorCommand(administratorService),
+                            RemoveAdministratorCommand(administratorService),
+                            ListAdministratorsCommand(administratorService),
+                        ),
+                ),
                 CompositeCommand(
                     name = "team",
                     children =

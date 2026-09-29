@@ -1,6 +1,8 @@
 package io.twotle.infrastructure
 
 import io.twotle.Enderteambattle
+import io.twotle.domain.Administrator
+import io.twotle.domain.AdministratorRepository
 import io.twotle.domain.ConfigurationRepository
 import io.twotle.domain.GameRepository
 import io.twotle.domain.GameStatus
@@ -17,7 +19,8 @@ class YamlDataStore(
     private val plugin: Enderteambattle,
 ) : TeamRepository,
     ConfigurationRepository,
-    GameRepository {
+    GameRepository,
+    AdministratorRepository {
     private val config
         get() = plugin.config
 
@@ -35,8 +38,33 @@ class YamlDataStore(
     }
 
     override fun reset() {
+        val administrators = administrators()
         config.getKeys(false).toList().forEach { config.set(it, null) }
         config.set(DATA_VERSION_PATH, DATA_VERSION)
+        administrators.forEach(::writeAdministrator)
+        plugin.saveConfig()
+    }
+
+    override fun findAdministrator(uuid: UUID): Administrator? = readAdministrator(uuid.toString())
+
+    override fun findAdministrator(username: String): Administrator? =
+        administrators().firstOrNull { it.username.equals(username, ignoreCase = true) }
+
+    override fun administrators(): List<Administrator> =
+        config
+            .getConfigurationSection(ADMINISTRATORS_PATH)
+            ?.getKeys(false)
+            ?.mapNotNull(::readAdministrator)
+            .orEmpty()
+            .sortedBy { it.username.lowercase(Locale.ROOT) }
+
+    override fun saveAdministrator(administrator: Administrator) {
+        writeAdministrator(administrator)
+        plugin.saveConfig()
+    }
+
+    override fun deleteAdministrator(administrator: Administrator) {
+        config.set("$ADMINISTRATORS_PATH.${administrator.uuid}", null)
         plugin.saveConfig()
     }
 
@@ -227,6 +255,18 @@ class YamlDataStore(
             )
         }.getOrNull()
 
+    private fun readAdministrator(key: String): Administrator? =
+        runCatching {
+            Administrator(
+                uuid = UUID.fromString(key),
+                username = requireNotNull(config.getString("$ADMINISTRATORS_PATH.$key")),
+            )
+        }.getOrNull()
+
+    private fun writeAdministrator(administrator: Administrator) {
+        config.set("$ADMINISTRATORS_PATH.${administrator.uuid}", administrator.username)
+    }
+
     private fun teamsSection(): ConfigurationSection? = config.getConfigurationSection(TEAMS_PATH)
 
     private fun teamPath(teamName: String): String = "$TEAMS_PATH.${teamName.lowercase(Locale.ROOT)}"
@@ -241,6 +281,7 @@ class YamlDataStore(
         const val LOCATOR_BAR_ENABLED_PATH = "options.locator-bar-enabled"
         const val PHANTOM_SPAWN_ALLOWED_PATH = "options.phantom-spawn-allowed"
         const val WORLD_BORDER_RADIUS_PATH = "options.world-border-radius"
+        const val ADMINISTRATORS_PATH = "administrators"
         const val TEAMS_PATH = "teams"
     }
 }
