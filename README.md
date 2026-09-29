@@ -2,7 +2,7 @@
 
 EnderTeamBattle is a Paper plugin for running team-based Ender Dragon battles. The first team to defeat the Ender Dragon wins.
 
-Current release: **1.3**
+Current release: **1.4**
 
 ## Features
 
@@ -33,7 +33,7 @@ A system installation of Gradle is currently required because this repository do
 gradle build
 ```
 
-The deployable shaded plugin JAR is generated at `build/libs/EnderTeamBattle-1.3-all.jar`.
+The deployable shaded plugin JAR is generated at `build/libs/EnderTeamBattle-1.4-all.jar`.
 
 To start a local Paper development server:
 
@@ -44,7 +44,7 @@ gradle runServer
 ## Installation
 
 1. Build the plugin or download a release JAR.
-2. Copy `EnderTeamBattle-1.3-all.jar` into your Paper server's `plugins/` directory.
+2. Copy `EnderTeamBattle-1.4-all.jar` into your Paper server's `plugins/` directory.
 3. Start or restart the server.
 4. Use the commands as a server operator, or delegate access with `/etb admin add <username>`.
 
