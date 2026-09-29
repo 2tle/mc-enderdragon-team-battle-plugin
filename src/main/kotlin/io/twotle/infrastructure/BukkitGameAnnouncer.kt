@@ -5,11 +5,38 @@ import io.twotle.domain.GameEvent
 import io.twotle.domain.TeamStanding
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.title.Title
 import org.bukkit.Bukkit
+import java.time.Duration
 
 class BukkitGameAnnouncer : GameAnnouncer {
     override fun announce(event: GameEvent) {
         Bukkit.broadcast(message(event))
+        val title = title(event)
+        Bukkit.getOnlinePlayers().forEach { it.showTitle(title) }
+    }
+
+    private fun title(event: GameEvent): Title {
+        val (title, subtitle) = when (event) {
+            GameEvent.Started ->
+                Component.text("Game Started", NamedTextColor.GREEN) to
+                    Component.text("Defeat the Ender Dragon first!", NamedTextColor.WHITE)
+            GameEvent.Resumed ->
+                Component.text("Game Resumed", NamedTextColor.GREEN) to Component.empty()
+            GameEvent.Paused ->
+                Component.text("Game Paused", NamedTextColor.YELLOW) to Component.empty()
+            is GameEvent.StoppedAsDraw ->
+                Component.text("Draw", NamedTextColor.YELLOW) to
+                    Component.text("The highest score is tied.", NamedTextColor.GRAY)
+            is GameEvent.WonByScore ->
+                Component.text("${event.team.name} Wins!", BukkitTeamColor[event.team.color]) to
+                    Component.text("Highest score", NamedTextColor.GOLD)
+            is GameEvent.Won ->
+                Component.text("${event.team.name} Wins!", BukkitTeamColor[event.team.color]) to
+                    Component.text("First to defeat the Ender Dragon", NamedTextColor.GOLD)
+        }
+
+        return Title.title(title, subtitle, TITLE_TIMES)
     }
 
     private fun message(event: GameEvent): Component = when (event) {
@@ -52,4 +79,12 @@ class BukkitGameAnnouncer : GameAnnouncer {
                     ),
                 )
         }
+
+    private companion object {
+        val TITLE_TIMES: Title.Times = Title.Times.times(
+            Duration.ofMillis(500),
+            Duration.ofSeconds(3),
+            Duration.ofMillis(750),
+        )
+    }
 }
